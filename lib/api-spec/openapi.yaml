@@ -1,22 +1,29 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Anime Power Battles - Evidence-Based Analysis Engine
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: anime
+    description: Anime series management
+  - name: characters
+    description: Character management
+  - name: battles
+    description: Battle analysis and comparisons
+  - name: evidence
+    description: Evidence management
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +31,439 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /anime:
+    get:
+      operationId: listAnime
+      tags: [anime]
+      summary: List all supported anime
+      responses:
+        "200":
+          description: List of anime
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Anime"
+
+  /anime/{id}:
+    get:
+      operationId: getAnime
+      tags: [anime]
+      summary: Get anime by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Anime details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Anime"
+        "404":
+          description: Not found
+
+  /characters:
+    get:
+      operationId: listCharacters
+      tags: [characters]
+      summary: List characters, optionally filter by anime
+      parameters:
+        - name: animeId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of characters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Character"
+
+  /characters/{id}:
+    get:
+      operationId: getCharacter
+      tags: [characters]
+      summary: Get character by ID with full evidence
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Character with evidence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterDetail"
+        "404":
+          description: Not found
+
+  /battles/analyze:
+    post:
+      operationId: analyzeBattle
+      tags: [battles]
+      summary: Analyze battle between two characters using AI reasoning engine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BattleRequest"
+      responses:
+        "200":
+          description: Battle analysis with evidence-based reasoning
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BattleAnalysis"
+        "400":
+          description: Bad request
+        "500":
+          description: Analysis error
+
+  /battles/history:
+    get:
+      operationId: listBattles
+      tags: [battles]
+      summary: Get recent battle analyses
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recent battles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BattleSummary"
+
+  /battles/{id}:
+    get:
+      operationId: getBattle
+      tags: [battles]
+      summary: Get full battle analysis by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Full battle analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BattleAnalysis"
+        "404":
+          description: Not found
+
+  /evidence:
+    get:
+      operationId: listEvidence
+      tags: [evidence]
+      summary: List evidence for a character
+      parameters:
+        - name: characterId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: metric
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Evidence list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Evidence"
+
+  /stats/overview:
+    get:
+      operationId: getStats
+      tags: [battles]
+      summary: Get app statistics overview
+      responses:
+        "200":
+          description: Stats overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsOverview"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    Anime:
+      type: object
+      required: [id, name, nameAr, genre, characterCount]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        nameAr:
+          type: string
+        genre:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        characterCount:
+          type: integer
+        description:
+          type: ["string", "null"]
+
+    Character:
+      type: object
+      required: [id, name, nameAr, animeId, animeName, tier]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        nameAr:
+          type: string
+        animeId:
+          type: integer
+        animeName:
+          type: string
+        animeNameAr:
+          type: string
+        tier:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        powerLevel:
+          type: ["integer", "null"]
+        description:
+          type: ["string", "null"]
+        evidenceCount:
+          type: integer
+
+    CharacterDetail:
+      type: object
+      required: [id, name, nameAr, animeId, animeName, tier, evidence]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        nameAr:
+          type: string
+        animeId:
+          type: integer
+        animeName:
+          type: string
+        animeNameAr:
+          type: string
+        tier:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        powerLevel:
+          type: ["integer", "null"]
+        description:
+          type: ["string", "null"]
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/Evidence"
+        metrics:
+          type: object
+          additionalProperties:
+            type: string
+
+    Evidence:
+      type: object
+      required: [id, characterId, metric, content, sourceType, confidenceLevel]
+      properties:
+        id:
+          type: integer
+        characterId:
+          type: integer
+        metric:
+          type: string
+        content:
+          type: string
+        sourceType:
+          type: string
+        seriesName:
+          type: ["string", "null"]
+        chapterEpisode:
+          type: ["string", "null"]
+        pageScene:
+          type: ["string", "null"]
+        confidenceLevel:
+          type: string
+        isDirect:
+          type: boolean
+        createdAt:
+          type: string
+
+    BattleRequest:
+      type: object
+      required: [character1Id, character2Id]
+      properties:
+        character1Id:
+          type: integer
+        character2Id:
+          type: integer
+        context:
+          type: ["string", "null"]
+
+    BattleAnalysis:
+      type: object
+      required: [id, character1, character2, winner, confidenceScore, reasoning, evidenceUsed, createdAt]
+      properties:
+        id:
+          type: integer
+        character1:
+          $ref: "#/components/schemas/Character"
+        character2:
+          $ref: "#/components/schemas/Character"
+        winner:
+          type: ["string", "null"]
+        winnerId:
+          type: ["integer", "null"]
+        confidenceScore:
+          type: number
+        confidenceLabel:
+          type: string
+        reasoning:
+          type: string
+        reasoningSteps:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReasoningStep"
+        metricComparisons:
+          type: array
+          items:
+            $ref: "#/components/schemas/MetricComparison"
+        evidenceUsed:
+          type: array
+          items:
+            $ref: "#/components/schemas/Evidence"
+        contradictions:
+          type: array
+          items:
+            type: string
+        limitations:
+          type: array
+          items:
+            type: string
+        verdict:
+          type: string
+        createdAt:
+          type: string
+
+    BattleSummary:
+      type: object
+      required: [id, character1Name, character2Name, winner, confidenceScore, createdAt]
+      properties:
+        id:
+          type: integer
+        character1Name:
+          type: string
+        character1NameAr:
+          type: string
+        character2Name:
+          type: string
+        character2NameAr:
+          type: string
+        winner:
+          type: ["string", "null"]
+        confidenceScore:
+          type: number
+        createdAt:
+          type: string
+
+    ReasoningStep:
+      type: object
+      required: [step, description, conclusion]
+      properties:
+        step:
+          type: integer
+        description:
+          type: string
+        evidenceIds:
+          type: array
+          items:
+            type: integer
+        conclusion:
+          type: string
+
+    MetricComparison:
+      type: object
+      required: [metric, metricAr, character1Score, character2Score, winner, reasoning]
+      properties:
+        metric:
+          type: string
+        metricAr:
+          type: string
+        character1Score:
+          type: number
+        character2Score:
+          type: number
+        winner:
+          type: ["string", "null"]
+        reasoning:
+          type: string
+        evidenceIds:
+          type: array
+          items:
+            type: integer
+
+    StatsOverview:
+      type: object
+      required: [totalAnime, totalCharacters, totalBattles, totalEvidence]
+      properties:
+        totalAnime:
+          type: integer
+        totalCharacters:
+          type: integer
+        totalBattles:
+          type: integer
+        totalEvidence:
+          type: integer
+        recentBattles:
+          type: array
+          items:
+            $ref: "#/components/schemas/BattleSummary"
+        topCharacters:
+          type: array
+          items:
+            $ref: "#/components/schemas/Character"
