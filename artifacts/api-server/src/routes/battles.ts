@@ -5,21 +5,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
 
 const router = Router();
-
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-const METRICS = [
-  { key: "power", ar: "القوة" },
-  { key: "attack_potency", ar: "القوة التدميرية" },
-  { key: "speed", ar: "السرعة" },
-  { key: "durability", ar: "التحمل" },
-  { key: "battle_iq", ar: "الذكاء القتالي" },
-  { key: "hax", ar: "القدرات الخاصة" },
-  { key: "experience", ar: "الخبرة" },
-  { key: "stamina", ar: "القدرة على الاستمرار" },
-  { key: "range", ar: "المدى" },
-  { key: "regeneration", ar: "التجدد" },
-];
 
 async function getCharacterWithEvidence(id: number) {
   const [char] = await db
@@ -34,6 +20,7 @@ async function getCharacterWithEvidence(id: number) {
       imageUrl: charactersTable.imageUrl,
       powerLevel: charactersTable.powerLevel,
       description: charactersTable.description,
+      forms: charactersTable.forms,
     })
     .from(charactersTable)
     .leftJoin(animeTable, eq(charactersTable.animeId, animeTable.id))
@@ -50,92 +37,84 @@ async function getCharacterWithEvidence(id: number) {
   return { ...char, evidence, evidenceCount: evidence.length };
 }
 
-function buildAnalysisPrompt(char1: any, char2: any, context?: string) {
+function buildAnalysisPrompt(char1: any, char2: any, form1: string, form2: string, context?: string) {
   const buildEvidenceText = (char: any) => {
-    if (!char.evidence || char.evidence.length === 0) {
-      return "لا توجد أدلة مسجلة لهذه الشخصية بعد.";
-    }
+    if (!char.evidence || char.evidence.length === 0) return "No recorded evidence yet.";
     return char.evidence.map((e: any) =>
-      `[${e.metric} | المصدر: ${e.sourceType} | الثقة: ${e.confidenceLevel} | مباشر: ${e.isDirect ? "نعم" : "لا"}]
-المرجع: ${e.seriesName || ""} ${e.chapterEpisode || ""} ${e.pageScene || ""}
-الدليل: ${e.content}`
+      `[Metric: ${e.metric} | Source: ${e.sourceType} | Confidence: ${e.confidenceLevel} | Direct: ${e.isDirect ? "Yes" : "No"}]
+Reference: ${e.seriesName || ""} ${e.chapterEpisode || ""} ${e.pageScene || ""}
+Evidence: ${e.content}`
     ).join("\n\n");
   };
 
-  return `أنت محرك تحليل قائم على الأدلة لمقارنة شخصيات الأنمي والمانغا. مهمتك هي إجراء مقارنة دقيقة وعلمية تماماً كما يفعل الباحث الأكاديمي.
+  return `You are an evidence-based analysis engine for comparing anime/manga characters. Your task is a rigorous academic-quality comparison.
 
-## قواعد الاستدلال الصارمة:
-1. لا تستنتج أي نتيجة دون دليل مباشر
-2. رتّب المصادر: مانغا أصلية > داتابوك رسمي > تصريحات المؤلف > أنمي > مصادر ثانوية
-3. عند التعارض: اعرض كلا الدليلين ووضّح أيهما أقوى ولماذا
-4. إذا لم تكن هناك أدلة كافية: قل ذلك صراحةً بدلاً من التخمين
-5. ميّز دائماً بين: حقائق مباشرة / استنتاجات منطقية / فرضيات
-6. ابنِ الاستنتاج خطوة بخطوة ولا تقفز مباشرة للحكم
+## STRICT REASONING RULES:
+1. Never conclude without direct evidence
+2. Source priority: original manga > official databook > author statements > anime (if not contradicting manga) > secondary sources
+3. When sources conflict: present both pieces of evidence and explain which is stronger and why
+4. If insufficient evidence: state that explicitly rather than guessing
+5. Always distinguish: direct facts / logical inferences / hypotheses
+6. Build reasoning step-by-step, never jump to conclusions
 
-## الشخصية الأولى: ${char1.nameAr} (${char1.name})
-الأنمي: ${char1.animeNameAr || char1.animeName}
-المستوى: ${char1.tier}
-الوصف: ${char1.description || "غير متاح"}
+## Character 1: ${char1.name} — Form: ${form1}
+Series: ${char1.animeName}
+Tier: ${char1.tier}
+Description: ${char1.description || "N/A"}
 
-### أدلة ${char1.nameAr}:
+### Evidence for ${char1.name} (${form1}):
 ${buildEvidenceText(char1)}
 
-## الشخصية الثانية: ${char2.nameAr} (${char2.name})
-الأنمي: ${char2.animeNameAr || char2.animeName}
-المستوى: ${char2.tier}
-الوصف: ${char2.description || "غير متاح"}
+## Character 2: ${char2.name} — Form: ${form2}
+Series: ${char2.animeName}
+Tier: ${char2.tier}
+Description: ${char2.description || "N/A"}
 
-### أدلة ${char2.nameAr}:
+### Evidence for ${char2.name} (${form2}):
 ${buildEvidenceText(char2)}
 
-${context ? `## سياق إضافي من المستخدم:\n${context}` : ""}
+${context ? `## Additional context from user:\n${context}` : ""}
 
-## المطلوب منك:
-أجرِ تحليلاً شاملاً وأخرج JSON بهذا الشكل بالضبط (لا تضف أي نص خارج JSON):
+## REQUIRED OUTPUT:
+Respond ONLY with valid JSON (no markdown, no extra text):
 
 {
-  "winner": "اسم الرابح بالعربية أو null إذا كانت المعركة متكافئة أو لا يمكن الحسم",
-  "winnerKey": "character1 أو character2 أو null",
-  "confidenceScore": رقم من 0 إلى 100,
-  "confidenceLabel": "مرتفع أو متوسط أو منخفض",
-  "verdict": "حكم نهائي مختصر بجملة واحدة",
-  "reasoning": "تحليل شامل ومفصل بالعربية يشرح المنهجية والأدلة والاستنتاج",
+  "winner": "winner's name or null if draw/inconclusive",
+  "winnerKey": "character1 or character2 or null",
+  "confidenceScore": <number 0-100>,
+  "confidenceLabel": "High or Medium or Low",
+  "verdict": "One-sentence final verdict",
+  "reasoning": "Detailed academic analysis in English explaining methodology, evidence, and conclusion",
   "reasoningSteps": [
-    {
-      "step": 1,
-      "description": "وصف الخطوة",
-      "evidenceIds": [],
-      "conclusion": "استنتاج الخطوة"
-    }
+    { "step": 1, "description": "Step description", "evidenceIds": [], "conclusion": "Step conclusion" }
   ],
   "metricComparisons": [
     {
       "metric": "power",
       "metricAr": "القوة",
-      "character1Score": رقم من 0 إلى 10,
-      "character2Score": رقم من 0 إلى 10,
-      "winner": "character1 أو character2 أو null",
-      "reasoning": "شرح مختصر بالعربية مع ذكر الدليل",
+      "character1Score": <0-10>,
+      "character2Score": <0-10>,
+      "winner": "character1 or character2 or null",
+      "reasoning": "Brief evidence-based explanation",
       "evidenceIds": []
     }
   ],
-  "contradictions": ["تناقض 1 إذا وجد", "تناقض 2"],
-  "limitations": ["قيود التحليل: غياب أدلة، تعارضات غير محسومة، إلخ"]
+  "contradictions": ["contradiction 1 if any"],
+  "limitations": ["analysis limitation 1"]
 }
 
-المقاييس التي يجب تقييمها (إذا كانت هناك أدلة): power, attack_potency, speed, durability, battle_iq, hax, experience, stamina, range, regeneration
+Metrics to evaluate (if evidence exists): power, attack_potency, speed, durability, battle_iq, hax, experience, stamina, range, regeneration
 
-تذكر: الجودة الأكاديمية مطلوبة. كل حكم يجب أن يكون مدعوماً بدليل محدد.`;
+CRITICAL: Academic quality required. Every judgment must cite specific evidence.`;
 }
 
 router.post("/battles/analyze", async (req, res) => {
   try {
-    const { character1Id, character2Id, context } = req.body;
+    const { character1Id, character2Id, character1Form, character2Form, context } = req.body;
 
     if (!character1Id || !character2Id) {
       return res.status(400).json({ error: "character1Id and character2Id are required" });
     }
-
     if (character1Id === character2Id) {
       return res.status(400).json({ error: "Cannot compare a character with itself" });
     }
@@ -148,10 +127,15 @@ router.post("/battles/analyze", async (req, res) => {
     if (!char1) return res.status(404).json({ error: `Character ${character1Id} not found` });
     if (!char2) return res.status(404).json({ error: `Character ${character2Id} not found` });
 
-    const prompt = buildAnalysisPrompt(char1, char2, context);
+    const forms1 = (char1.forms as string[]) || [];
+    const forms2 = (char2.forms as string[]) || [];
+    const form1 = character1Form || (forms1.length > 0 ? forms1[0] : "Standard");
+    const form2 = character2Form || (forms2.length > 0 ? forms2[0] : "Standard");
+
+    const prompt = buildAnalysisPrompt(char1, char2, form1, form2, context);
 
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-opus-4-5",
       max_tokens: 8192,
       messages: [{ role: "user", content: prompt }],
     });
@@ -164,35 +148,24 @@ router.post("/battles/analyze", async (req, res) => {
       analysis = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
     } catch {
       analysis = {
-        winner: null,
-        winnerKey: null,
-        confidenceScore: 50,
-        confidenceLabel: "متوسط",
-        verdict: "تعذّر تحليل النتيجة بشكل كامل",
-        reasoning: rawText,
-        reasoningSteps: [],
-        metricComparisons: [],
-        contradictions: [],
-        limitations: ["حدث خطأ في تحليل البيانات"],
+        winner: null, winnerKey: null, confidenceScore: 50, confidenceLabel: "Medium",
+        verdict: "Analysis could not be fully parsed",
+        reasoning: rawText, reasoningSteps: [], metricComparisons: [], contradictions: [], limitations: [],
       };
     }
 
     const winnerId = analysis.winnerKey === "character1" ? character1Id
       : analysis.winnerKey === "character2" ? character2Id : null;
-    const winnerName = analysis.winner || null;
 
-    const evidenceIds = [
-      ...char1.evidence.map((e: any) => e.id),
-      ...char2.evidence.map((e: any) => e.id),
-    ];
+    const evidenceIds = [...char1.evidence.map((e: any) => e.id), ...char2.evidence.map((e: any) => e.id)];
 
     const [battle] = await db.insert(battlesTable).values({
-      character1Id,
-      character2Id,
+      character1Id, character2Id,
+      character1Form: form1, character2Form: form2,
       winnerId,
-      winnerName,
+      winnerName: analysis.winner || null,
       confidenceScore: analysis.confidenceScore || 50,
-      confidenceLabel: analysis.confidenceLabel || "متوسط",
+      confidenceLabel: analysis.confidenceLabel || "Medium",
       reasoning: analysis.reasoning || "",
       reasoningSteps: analysis.reasoningSteps || [],
       metricComparisons: analysis.metricComparisons || [],
@@ -209,8 +182,10 @@ router.post("/battles/analyze", async (req, res) => {
       id: battle.id,
       character1: { ...char1, evidenceCount: char1.evidence.length },
       character2: { ...char2, evidenceCount: char2.evidence.length },
-      winner: winnerName,
-      winnerId,
+      character1Form: form1,
+      character2Form: form2,
+      winner: battle.winnerName,
+      winnerId: battle.winnerId,
       confidenceScore: battle.confidenceScore,
       confidenceLabel: battle.confidenceLabel,
       reasoning: battle.reasoning,
@@ -224,26 +199,14 @@ router.post("/battles/analyze", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to analyze battle");
-    res.status(500).json({ error: "Failed to analyze battle" });
+    res.status(500).json({ error: String(err) });
   }
 });
 
 router.get("/battles/history", async (req, res) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-
-    const battles = await db
-      .select({
-        id: battlesTable.id,
-        character1Id: battlesTable.character1Id,
-        character2Id: battlesTable.character2Id,
-        winner: battlesTable.winnerName,
-        confidenceScore: battlesTable.confidenceScore,
-        createdAt: battlesTable.createdAt,
-      })
-      .from(battlesTable)
-      .orderBy(desc(battlesTable.createdAt))
-      .limit(limit);
+    const battles = await db.select().from(battlesTable).orderBy(desc(battlesTable.createdAt)).limit(limit);
 
     const result = await Promise.all(battles.map(async (b) => {
       const [c1] = await db.select({ name: charactersTable.name, nameAr: charactersTable.nameAr })
@@ -254,9 +217,11 @@ router.get("/battles/history", async (req, res) => {
         id: b.id,
         character1Name: c1?.name || "",
         character1NameAr: c1?.nameAr || "",
+        character1Form: b.character1Form,
         character2Name: c2?.name || "",
         character2NameAr: c2?.nameAr || "",
-        winner: b.winner,
+        character2Form: b.character2Form,
+        winner: b.winnerName,
         confidenceScore: b.confidenceScore,
         createdAt: b.createdAt.toISOString(),
       };
@@ -282,12 +247,12 @@ router.get("/battles/:id", async (req, res) => {
       getCharacterWithEvidence(battle.character2Id),
     ]);
 
-    const allEvidence = [...(char1?.evidence || []), ...(char2?.evidence || [])];
-
     res.json({
       id: battle.id,
       character1: char1,
       character2: char2,
+      character1Form: battle.character1Form,
+      character2Form: battle.character2Form,
       winner: battle.winnerName,
       winnerId: battle.winnerId,
       confidenceScore: battle.confidenceScore,
@@ -295,7 +260,7 @@ router.get("/battles/:id", async (req, res) => {
       reasoning: battle.reasoning,
       reasoningSteps: battle.reasoningSteps,
       metricComparisons: battle.metricComparisons,
-      evidenceUsed: allEvidence,
+      evidenceUsed: [...(char1?.evidence || []), ...(char2?.evidence || [])],
       contradictions: battle.contradictions,
       limitations: battle.limitations,
       verdict: battle.verdict,
@@ -316,63 +281,23 @@ router.get("/stats/overview", async (req, res) => {
       db.select({ count: sql<number>`count(*)::int` }).from(evidenceTable),
     ]);
 
-    const recentBattlesRaw = await db
-      .select({
-        id: battlesTable.id,
-        character1Id: battlesTable.character1Id,
-        character2Id: battlesTable.character2Id,
-        winner: battlesTable.winnerName,
-        confidenceScore: battlesTable.confidenceScore,
-        createdAt: battlesTable.createdAt,
-      })
-      .from(battlesTable)
-      .orderBy(desc(battlesTable.createdAt))
-      .limit(5);
-
+    const recentBattlesRaw = await db.select().from(battlesTable).orderBy(desc(battlesTable.createdAt)).limit(5);
     const recentBattles = await Promise.all(recentBattlesRaw.map(async (b) => {
-      const [c1] = await db.select({ name: charactersTable.name, nameAr: charactersTable.nameAr })
-        .from(charactersTable).where(eq(charactersTable.id, b.character1Id));
-      const [c2] = await db.select({ name: charactersTable.name, nameAr: charactersTable.nameAr })
-        .from(charactersTable).where(eq(charactersTable.id, b.character2Id));
-      return {
-        id: b.id,
-        character1Name: c1?.name || "",
-        character1NameAr: c1?.nameAr || "",
-        character2Name: c2?.name || "",
-        character2NameAr: c2?.nameAr || "",
-        winner: b.winner,
-        confidenceScore: b.confidenceScore,
-        createdAt: b.createdAt.toISOString(),
-      };
+      const [c1] = await db.select({ name: charactersTable.name, nameAr: charactersTable.nameAr }).from(charactersTable).where(eq(charactersTable.id, b.character1Id));
+      const [c2] = await db.select({ name: charactersTable.name, nameAr: charactersTable.nameAr }).from(charactersTable).where(eq(charactersTable.id, b.character2Id));
+      return { id: b.id, character1Name: c1?.name || "", character1NameAr: c1?.nameAr || "", character2Name: c2?.name || "", character2NameAr: c2?.nameAr || "", winner: b.winnerName, confidenceScore: b.confidenceScore, createdAt: b.createdAt.toISOString() };
     }));
 
-    const topChars = await db
-      .select({
-        id: charactersTable.id,
-        name: charactersTable.name,
-        nameAr: charactersTable.nameAr,
-        animeId: charactersTable.animeId,
-        animeName: animeTable.name,
-        animeNameAr: animeTable.nameAr,
-        tier: charactersTable.tier,
-        imageUrl: charactersTable.imageUrl,
-        powerLevel: charactersTable.powerLevel,
-        description: charactersTable.description,
-        evidenceCount: sql<number>`(select count(*) from evidence where character_id = ${charactersTable.id})::int`,
-      })
-      .from(charactersTable)
-      .leftJoin(animeTable, eq(charactersTable.animeId, animeTable.id))
-      .orderBy(desc(sql`(select count(*) from evidence where character_id = ${charactersTable.id})`))
-      .limit(6);
+    const topChars = await db.select({
+      id: charactersTable.id, name: charactersTable.name, nameAr: charactersTable.nameAr,
+      animeId: charactersTable.animeId, animeName: animeTable.name, animeNameAr: animeTable.nameAr,
+      tier: charactersTable.tier, imageUrl: charactersTable.imageUrl, powerLevel: charactersTable.powerLevel,
+      description: charactersTable.description,
+      evidenceCount: sql<number>`(select count(*) from evidence where character_id = ${charactersTable.id})::int`,
+    }).from(charactersTable).leftJoin(animeTable, eq(charactersTable.animeId, animeTable.id))
+      .orderBy(desc(sql`(select count(*) from evidence where character_id = ${charactersTable.id})`)).limit(6);
 
-    res.json({
-      totalAnime: animeCount.count,
-      totalCharacters: charCount.count,
-      totalBattles: battleCount.count,
-      totalEvidence: evidenceCount.count,
-      recentBattles,
-      topCharacters: topChars,
-    });
+    res.json({ totalAnime: animeCount.count, totalCharacters: charCount.count, totalBattles: battleCount.count, totalEvidence: evidenceCount.count, recentBattles, topCharacters: topChars });
   } catch (err) {
     req.log.error({ err }, "Failed to get stats");
     res.status(500).json({ error: "Failed to get stats" });

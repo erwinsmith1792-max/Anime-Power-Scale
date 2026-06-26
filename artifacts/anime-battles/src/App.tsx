@@ -47,7 +47,7 @@ function Navbar() {
           data-testid="nav-logo"
         >
           <Sword className="h-5 w-5 text-primary" />
-          معارك الأنمي
+          Anime Power Scales
         </button>
 
         {/* Desktop Nav */}

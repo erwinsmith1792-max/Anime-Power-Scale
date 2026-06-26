@@ -26,6 +26,7 @@ router.get("/characters", async (req, res) => {
         imageUrl: charactersTable.imageUrl,
         powerLevel: charactersTable.powerLevel,
         description: charactersTable.description,
+        forms: charactersTable.forms,
         evidenceCount: sql<number>`(select count(*) from evidence where character_id = ${charactersTable.id})::int`,
       })
       .from(charactersTable)
@@ -57,6 +58,7 @@ router.get("/characters/:id", async (req, res) => {
         imageUrl: charactersTable.imageUrl,
         powerLevel: charactersTable.powerLevel,
         description: charactersTable.description,
+        forms: charactersTable.forms,
         evidenceCount: sql<number>`(select count(*) from evidence where character_id = ${charactersTable.id})::int`,
       })
       .from(charactersTable)
@@ -65,11 +67,7 @@ router.get("/characters/:id", async (req, res) => {
 
     if (!char) return res.status(404).json({ error: "Character not found" });
 
-    const evidence = await db
-      .select()
-      .from(evidenceTable)
-      .where(eq(evidenceTable.characterId, id))
-      .orderBy(evidenceTable.metric);
+    const evidence = await db.select().from(evidenceTable).where(eq(evidenceTable.characterId, id)).orderBy(evidenceTable.metric);
 
     res.json({ ...char, evidence, metrics: {} });
   } catch (err) {
