@@ -2,10 +2,10 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { battlesTable, charactersTable, animeTable, evidenceTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = Router();
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 async function getCharacterWithEvidence(id: number) {
   const [char] = await db
@@ -134,13 +134,9 @@ router.post("/battles/analyze", async (req, res) => {
 
     const prompt = buildAnalysisPrompt(char1, char2, form1, form2, context);
 
-    const message = await anthropic.messages.create({
-      model: "claude-opus-4-5",
-      max_tokens: 8192,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const rawText = message.content[0].type === "text" ? message.content[0].text : "";
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const result = await model.generateContent(prompt);
+    const rawText = result.response.text();
 
     let analysis: any;
     try {
