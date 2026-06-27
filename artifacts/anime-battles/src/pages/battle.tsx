@@ -7,6 +7,7 @@ import {
   getListCharactersQueryKey,
 } from "@workspace/api-client-react";
 import { Sword, Zap, RotateCcw, BookOpen, AlertTriangle, Trophy, ChevronDown } from "lucide-react";
+import BattleSimulation from "@/components/BattleSimulation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -99,7 +100,7 @@ export default function BattlePage() {
   const [form1, setForm1] = useState<string>("");
   const [form2, setForm2] = useState<string>("");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
-  const [activeTab, setActiveTab] = useState<"reasoning" | "metrics" | "evidence">("reasoning");
+  const [activeTab, setActiveTab] = useState<"reasoning" | "metrics" | "simulation" | "evidence">("reasoning");
   const { toast } = useToast();
 
   const { data: animeList } = useListAnime();
@@ -226,7 +227,7 @@ export default function BattlePage() {
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الشخصية" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-64 overflow-y-auto">
                     {chars1?.map((c) => (
                       <SelectItem key={c.id} value={String(c.id)}>
                         {c.name} <span className="text-muted-foreground text-xs">({c.tier})</span>
@@ -280,7 +281,7 @@ export default function BattlePage() {
                   <SelectTrigger>
                     <SelectValue placeholder="اختر الشخصية" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-64 overflow-y-auto">
                     {chars2?.map((c) => (
                       <SelectItem key={c.id} value={String(c.id)}>
                         {c.name} <span className="text-muted-foreground text-xs">({c.tier})</span>
@@ -384,8 +385,8 @@ export default function BattlePage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 mb-4">
-              {(["reasoning", "metrics", "evidence"] as const).map((tab) => (
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {(["reasoning", "metrics", "simulation", "evidence"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -393,7 +394,7 @@ export default function BattlePage() {
                     activeTab === tab ? "bg-primary text-primary-foreground" : "bg-card border border-card-border text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {tab === "reasoning" ? "التحليل" : tab === "metrics" ? "المقاييس" : "الأدلة"}
+                  {tab === "reasoning" ? "التحليل" : tab === "metrics" ? "المقاييس" : tab === "simulation" ? "المحاكاة" : "الأدلة"}
                 </button>
               ))}
             </div>
@@ -459,40 +460,44 @@ export default function BattlePage() {
 
             {/* Metrics Tab */}
             {activeTab === "metrics" && (
-              <div className="bg-card border border-card-border rounded-xl p-5">
-                <h3 className="font-black text-foreground mb-4">مقارنة المقاييس</h3>
+              <div className="bg-gradient-to-br from-card to-card/80 border border-primary/30 rounded-xl p-5 shadow-lg shadow-primary/10">
+                <h3 className="font-black text-lg bg-gradient-to-r from-primary to-amber-400 bg-clip-text text-transparent mb-4">مقارنة المقاييس</h3>
                 {analysis.metricComparisons?.length > 0 ? (
                   <div className="space-y-4">
                     {analysis.metricComparisons.map((m: any, i: number) => (
-                      <div key={i}>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-bold text-foreground">
+                      <div key={i} className="border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-4 hover:border-primary/40 transition-colors">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-sm font-bold bg-gradient-to-r from-primary to-amber-400 bg-clip-text text-transparent">
                             {m.metricAr || METRIC_LABELS[m.metric] || m.metric}
                           </span>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className={`text-xs font-bold ${
+                            m.winner === "character1" ? "bg-primary/10 border-primary/30 text-primary" :
+                            m.winner === "character2" ? "bg-accent/10 border-accent/30 text-accent" :
+                            "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+                          }`}>
                             {m.winner === "character1"
                               ? analysis.character1?.name
                               : m.winner === "character2"
                               ? analysis.character2?.name
-                              : "تعادل"}
+                              : "⚖️ تعادل"}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className="text-xs text-muted-foreground w-24 text-right truncate">{analysis.character1?.name}</span>
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-xs font-semibold text-foreground w-24 text-right truncate">{analysis.character1?.name}</span>
                           <div className="flex-1 flex gap-1 items-center">
-                            <Progress value={(m.character1Score / 10) * 100} className="flex-1 h-2" />
-                            <span className="text-xs font-bold text-primary w-6">{m.character1Score}</span>
+                            <Progress value={(m.character1Score / 10) * 100} className="flex-1 h-3" />
+                            <span className="text-xs font-bold text-primary w-8">{m.character1Score}/10</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-muted-foreground w-24 text-right truncate">{analysis.character2?.name}</span>
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-xs font-semibold text-foreground w-24 text-right truncate">{analysis.character2?.name}</span>
                           <div className="flex-1 flex gap-1 items-center">
-                            <Progress value={(m.character2Score / 10) * 100} className="flex-1 h-2" />
-                            <span className="text-xs font-bold text-accent w-6">{m.character2Score}</span>
+                            <Progress value={(m.character2Score / 10) * 100} className="flex-1 h-3" />
+                            <span className="text-xs font-bold text-accent w-8">{m.character2Score}/10</span>
                           </div>
                         </div>
                         {m.reasoning && (
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{m.reasoning}</p>
+                          <p className="text-xs font-medium text-foreground mt-2 leading-relaxed">{m.reasoning}</p>
                         )}
                       </div>
                     ))}
@@ -501,6 +506,11 @@ export default function BattlePage() {
                   <p className="text-muted-foreground text-sm">لا توجد بيانات مقاييس مفصّلة.</p>
                 )}
               </div>
+            )}
+
+            {/* Battle Simulation Tab */}
+            {activeTab === "simulation" && (
+              <BattleSimulation character1={analysis.character1} character2={analysis.character2} analysis={analysis} />
             )}
 
             {/* Evidence Tab */}

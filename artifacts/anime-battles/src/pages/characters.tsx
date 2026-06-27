@@ -132,7 +132,7 @@ export default function CharactersPage() {
                   data-testid={`char-card-${char.id}`}
                   onClick={() => handleCharacterClick(char.id)}
                   className={`
-                    bg-card border rounded-xl p-4 text-right transition-all cursor-pointer hover:border-primary/50
+                    bg-card border rounded-xl p-4 text-right transition-all cursor-pointer hover:border-primary/50 group
                     ${isSelected ? "border-primary glow-gold ring-2 ring-primary/50" : "border-card-border"}
                     ${battleMode ? "hover:scale-105" : ""}
                   `}
@@ -147,8 +147,15 @@ export default function CharactersPage() {
                       <span className="text-primary text-xs font-bold">✓ محدد</span>
                     )}
                   </div>
-                  <div className="font-bold text-foreground text-base leading-tight">{char.nameAr}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{char.name}</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition-transform shadow-md">
+                      🎭
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-foreground text-sm leading-tight">{char.nameAr}</div>
+                      <div className="text-xs text-muted-foreground">{char.name}</div>
+                    </div>
+                  </div>
                   <div className="flex items-center justify-between mt-3">
                     <Badge variant="outline" className="text-xs border-border">
                       {char.animeNameAr}

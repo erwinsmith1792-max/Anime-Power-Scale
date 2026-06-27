@@ -44,11 +44,14 @@ function Navbar() {
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <button
           onClick={() => setLocation("/")}
-          className="flex items-center gap-2 font-black text-lg text-foreground hover:text-primary transition-colors"
+          className="flex items-center gap-2 font-black text-lg text-foreground hover:text-primary transition-colors group"
           data-testid="nav-logo"
         >
-          <Sword className="h-5 w-5 text-primary" />
-          Anime Power Scales
+          <div className="relative w-6 h-6 flex items-center justify-center">
+            <Sword className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+            <div className="absolute inset-0 rounded-full bg-primary/20 blur-md group-hover:bg-primary/40 transition-colors"></div>
+          </div>
+          <span className="bg-gradient-to-r from-primary via-amber-400 to-orange-500 bg-clip-text text-transparent font-black text-lg">Anime Power Scales</span>
         </button>
 
         {/* Desktop Nav */}

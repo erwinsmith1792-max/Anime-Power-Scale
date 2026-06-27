@@ -1,6 +1,7 @@
 import { useLocation, useParams } from "wouter";
 import { useGetCharacter } from "@workspace/api-client-react";
 import { Sword, ArrowRight, Shield, Zap, Star, BookOpen } from "lucide-react";
+import AdvancedSearch from "@/components/AdvancedSearch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -91,11 +92,18 @@ export default function CharacterPage() {
         {/* Header Card */}
         <div className="bg-card border border-card-border rounded-2xl p-6 mb-5">
           <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-primary to-amber-500 flex items-center justify-center text-2xl shadow-lg">
+                💀
+              </div>
+              <div className="flex-1">
+                <h1 className="text-3xl font-black text-foreground">{char.name}</h1>
+                {char.nameAr && char.nameAr !== char.name && (
+                  <p className="text-lg text-primary font-bold mt-1">{char.nameAr}</p>
+                )}
+              </div>
+            </div>
             <div>
-              <h1 className="text-3xl font-black text-foreground">{char.name}</h1>
-              {char.nameAr && char.nameAr !== char.name && (
-                <p className="text-lg text-muted-foreground mt-1">{char.nameAr}</p>
-              )}
               <div className="flex items-center gap-2 mt-3 flex-wrap">
                 <Badge variant="outline" className="text-sm border-border">
                   {(char as any).animeNameAr || (char as any).animeName}
@@ -127,25 +135,28 @@ export default function CharacterPage() {
 
         {/* Forms */}
         {forms.length > 0 && (
-          <div className="bg-card border border-card-border rounded-xl p-5 mb-5">
-            <h2 className="font-black text-foreground mb-3 flex items-center gap-2">
-              <Star className="h-4 w-4 text-primary" />
+          <div className="bg-gradient-to-br from-card to-card/80 border border-amber-500/30 rounded-xl p-5 mb-5 shadow-lg shadow-amber-500/10">
+            <h2 className="font-black text-lg bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent mb-3 flex items-center gap-2">
+              <Star className="h-5 w-5 text-amber-400" />
               الأطوار والتحولات ({forms.length})
             </h2>
             <div className="flex flex-wrap gap-2">
               {forms.map((form, i) => (
-                <Badge key={i} variant="outline" className="text-sm border-primary/30 bg-primary/5 text-foreground">
-                  {form}
+                <Badge key={i} variant="outline" className="text-sm font-bold border-amber-400/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-colors">
+                  ✨ {form}
                 </Badge>
               ))}
             </div>
           </div>
         )}
 
+        {/* Advanced Search */}
+        <AdvancedSearch characterName={char.name} animeName={(char as any).animeName} />
+
         {/* Evidence */}
-        <div className="bg-card border border-card-border rounded-xl p-5 mb-6">
-          <h2 className="font-black text-foreground mb-4 flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-primary" />
+        <div className="bg-gradient-to-br from-card to-card/80 border border-primary/30 rounded-xl p-5 mb-6 shadow-lg shadow-primary/10">
+          <h2 className="font-black text-lg bg-gradient-to-r from-primary to-amber-400 bg-clip-text text-transparent mb-4 flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-primary" />
             الأدلة المسجّلة ({evidence.length})
           </h2>
           {evidence.length === 0 ? (
@@ -155,23 +166,23 @@ export default function CharacterPage() {
           ) : (
             <div className="space-y-3">
               {evidence.map((e: any, i: number) => (
-                <div key={i} className="border border-card-border rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <Badge variant="outline" className="text-xs">
+                <div key={i} className="border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-4 hover:border-primary/40 transition-colors">
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <Badge variant="outline" className="text-xs font-bold bg-primary/10 border-primary/30 text-primary">
                       {METRIC_AR[e.metric] || e.metric}
                     </Badge>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs font-bold bg-amber-500/10 border-amber-500/30 text-amber-400">
                       {SOURCE_AR[e.sourceType] || e.sourceType}
                     </Badge>
                     {e.seriesName && (
-                      <span className="text-xs text-muted-foreground">{e.seriesName} {e.chapterEpisode}</span>
+                      <span className="text-xs font-semibold text-foreground">{e.seriesName} {e.chapterEpisode}</span>
                     )}
                     {e.isDirect && (
-                      <Badge className="text-xs bg-green-500/20 text-green-400 border-green-400/30">مباشر</Badge>
+                      <Badge className="text-xs bg-green-500/20 text-green-400 border-green-400/30 font-bold">✓ مباشر</Badge>
                     )}
-                    <Badge variant="outline" className="text-xs capitalize">{e.confidenceLevel}</Badge>
+                    <Badge variant="outline" className="text-xs capitalize font-bold">{e.confidenceLevel}</Badge>
                   </div>
-                  <p className="text-sm text-foreground leading-relaxed">{e.content}</p>
+                  <p className="text-sm font-medium text-foreground leading-relaxed">{e.content}</p>
                 </div>
               ))}
             </div>
