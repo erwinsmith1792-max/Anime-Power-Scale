@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home";
 import CharactersPage from "@/pages/characters";
+import CharacterPage from "@/pages/character";
 import BattlePage from "@/pages/battle";
 import HistoryPage from "@/pages/history";
 import { Sword, Home, Users, Clock, Menu, X } from "lucide-react";
@@ -83,6 +84,7 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/characters" component={CharactersPage} />
+        <Route path="/character/:id" component={CharacterPage} />
         <Route path="/battle" component={BattlePage} />
         <Route path="/battle/:id" component={BattlePage} />
         <Route path="/history" component={HistoryPage} />

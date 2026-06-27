@@ -426,7 +426,7 @@ export default function BattlePage() {
 
                 <div className="bg-card border border-card-border rounded-xl p-5">
                   <h3 className="font-black text-foreground mb-3">التحليل الكامل</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap" dir="ltr">
+                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                     {analysis.reasoning}
                   </p>
                 </div>

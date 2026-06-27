@@ -39,54 +39,55 @@ async function getCharacterWithEvidence(id: number) {
 
 function buildAnalysisPrompt(char1: any, char2: any, form1: string, form2: string, context?: string) {
   const buildEvidenceText = (char: any) => {
-    if (!char.evidence || char.evidence.length === 0) return "No recorded evidence yet.";
+    if (!char.evidence || char.evidence.length === 0) return "لا توجد أدلة مسجلة في قاعدة البيانات — استخدم معرفتك بالأنمي.";
     return char.evidence.map((e: any) =>
-      `[Metric: ${e.metric} | Source: ${e.sourceType} | Confidence: ${e.confidenceLevel} | Direct: ${e.isDirect ? "Yes" : "No"}]
-Reference: ${e.seriesName || ""} ${e.chapterEpisode || ""} ${e.pageScene || ""}
-Evidence: ${e.content}`
+      `[المقياس: ${e.metric} | المصدر: ${e.sourceType} | الثقة: ${e.confidenceLevel} | مباشر: ${e.isDirect ? "نعم" : "لا"}]
+المرجع: ${e.seriesName || ""} ${e.chapterEpisode || ""} ${e.pageScene || ""}
+الدليل: ${e.content}`
     ).join("\n\n");
   };
 
-  return `You are an evidence-based analysis engine for comparing anime/manga characters. Your task is a rigorous academic-quality comparison.
+  return `أنت محرك تحليل قوى متخصص في مقارنة شخصيات الأنمي والمانغا. لديك معرفة عميقة وشاملة بجميع الأنمي والمانغا الشهيرة.
 
-## STRICT REASONING RULES:
-1. Never conclude without direct evidence
-2. Source priority: original manga > official databook > author statements > anime (if not contradicting manga) > secondary sources
-3. When sources conflict: present both pieces of evidence and explain which is stronger and why
-4. If insufficient evidence: state that explicitly rather than guessing
-5. Always distinguish: direct facts / logical inferences / hypotheses
-6. Build reasoning step-by-step, never jump to conclusions
+## قواعد التحليل:
+1. استخدم معرفتك الواسعة بالأنمي والمانغا لتقييم قوى الشخصيات — هذا هو المصدر الأساسي للتحليل.
+2. الأدلة المسجلة في قاعدة البيانات (إن وُجدت) تعزز تحليلك لكنها ليست شرطاً للحكم.
+3. أولوية المصادر: مانغا أصلية > داتابوك رسمي > تصريحات المؤلف > أنمي > مصادر ثانوية.
+4. عند تعارض المصادر: اذكر كلا الدليلين وفسّر أيهما أقوى.
+5. ميّز دائماً بين: حقائق مباشرة / استنتاجات منطقية / فرضيات.
+6. ابنِ التحليل خطوة بخطوة ولا تقفز إلى نتائج.
+7. يجب أن تصل إلى حكم واضح — تجنب التعادل إلا إذا كانت القوى متقاربة جداً بشكل حقيقي.
 
-## Character 1: ${char1.name} — Form: ${form1}
-Series: ${char1.animeName}
-Tier: ${char1.tier}
-Description: ${char1.description || "N/A"}
+## الشخصية الأولى: ${char1.name} — الطور: ${form1}
+السلسلة: ${char1.animeName}
+التصنيف: ${char1.tier}
+الوصف: ${char1.description || "غير محدد"}
 
-### Evidence for ${char1.name} (${form1}):
+### الأدلة المسجلة لـ ${char1.name} (${form1}):
 ${buildEvidenceText(char1)}
 
-## Character 2: ${char2.name} — Form: ${form2}
-Series: ${char2.animeName}
-Tier: ${char2.tier}
-Description: ${char2.description || "N/A"}
+## الشخصية الثانية: ${char2.name} — الطور: ${form2}
+السلسلة: ${char2.animeName}
+التصنيف: ${char2.tier}
+الوصف: ${char2.description || "غير محدد"}
 
-### Evidence for ${char2.name} (${form2}):
+### الأدلة المسجلة لـ ${char2.name} (${form2}):
 ${buildEvidenceText(char2)}
 
-${context ? `## Additional context from user:\n${context}` : ""}
+${context ? `## سياق إضافي من المستخدم:\n${context}` : ""}
 
-## REQUIRED OUTPUT:
-Respond ONLY with valid JSON (no markdown, no extra text):
+## المطلوب:
+أجب بـ JSON صالح فقط (بدون markdown أو نص إضافي). **جميع النصوص يجب أن تكون باللغة العربية** (عدا أسماء الشخصيات والأنمي والمصطلحات التقنية):
 
 {
-  "winner": "winner's name or null if draw/inconclusive",
-  "winnerKey": "character1 or character2 or null",
-  "confidenceScore": <number 0-100>,
-  "confidenceLabel": "High or Medium or Low",
-  "verdict": "One-sentence final verdict",
-  "reasoning": "Detailed academic analysis in English explaining methodology, evidence, and conclusion",
+  "winner": "اسم الفائز أو null في حالة التعادل الحقيقي فقط",
+  "winnerKey": "character1 أو character2 أو null",
+  "confidenceScore": <رقم 0-100>,
+  "confidenceLabel": "High أو Medium أو Low",
+  "verdict": "حكم نهائي بجملة واحدة بالعربية",
+  "reasoning": "تحليل أكاديمي مفصّل باللغة العربية يشرح المنهجية والأدلة والاستنتاج",
   "reasoningSteps": [
-    { "step": 1, "description": "Step description", "evidenceIds": [], "conclusion": "Step conclusion" }
+    { "step": 1, "description": "وصف الخطوة بالعربية", "evidenceIds": [], "conclusion": "استنتاج الخطوة بالعربية" }
   ],
   "metricComparisons": [
     {
@@ -94,18 +95,18 @@ Respond ONLY with valid JSON (no markdown, no extra text):
       "metricAr": "القوة",
       "character1Score": <0-10>,
       "character2Score": <0-10>,
-      "winner": "character1 or character2 or null",
-      "reasoning": "Brief evidence-based explanation",
+      "winner": "character1 أو character2 أو null",
+      "reasoning": "شرح مختصر مبني على الأدلة بالعربية",
       "evidenceIds": []
     }
   ],
-  "contradictions": ["contradiction 1 if any"],
-  "limitations": ["analysis limitation 1"]
+  "contradictions": ["تناقض 1 إن وجد بالعربية"],
+  "limitations": ["حد تحليلي 1 بالعربية"]
 }
 
-Metrics to evaluate (if evidence exists): power, attack_potency, speed, durability, battle_iq, hax, experience, stamina, range, regeneration
+المقاييس المطلوب تقييمها: power (القوة), attack_potency (قوة الهجوم), speed (السرعة), durability (الصلابة), battle_iq (ذكاء القتال), hax (القدرات الخاصة), experience (الخبرة), stamina (التحمل), range (المدى), regeneration (التجدد)
 
-CRITICAL: Academic quality required. Every judgment must cite specific evidence.`;
+مهم جداً: يجب الوصول إلى حكم واضح في كل مقياس ممكن. استخدم معرفتك بالأنمي لتقييم الشخصيات حتى بدون أدلة مسجّلة.`;
 }
 
 router.post("/battles/analyze", async (req, res) => {
